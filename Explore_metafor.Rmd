@@ -1,0 +1,86 @@
+---
+title: "Exploring the metafor package for meta-analysis"
+author: "Michael Andreae"
+fontfamily: pslatex
+output:
+  pdf_document: default
+---
+
+\setlength{\parindent}{0ex}
+
+##### Authors
+
+Michael H. Andreae, M.D., Department of Anesthesiology & Perioperative Medicine, H187, Penn State Health Milton S. Hershey Medical Center, Penn State College of Medicine, Hershey. PA
+
+
+\setlength{\parindent}{0ex}
+
+```{r, check_install_libraries, echo=FALSE, message=FALSE, eval=TRUE}
+# This chunk will check if all requiered libaries are installed 
+# and install the missing libraries
+
+# https://cran.r-project.org/web/packages/pacman/vignettes/Introduction_to_pacman.html
+
+## Option 1
+if (!require("pacman")) install.packages("pacman", repos='http://cran.us.r-project.org')
+pacman::p_load(knitr, ggplot2, tidyverse, metafor)
+
+## Option 2, 
+### if option one causes an error, comment option one and uncomment option 2:
+
+# if (!require("knitr")) install.packages("knitr", repos='http://cran.us.r-project.org')
+# if (!require("ggplot2")) install.packages("ggplot2", repos='http://cran.us.r-project.org')
+# if (!require("readxl")) install.packages("readxl", repos='http://cran.us.r-project.org')
+
+## Option 3
+### if option 1 and option 2 both throw an error, then:
+
+# install the packages knitr, ggplot2, readxl manuallyand 
+# set "eval=FALSE"" for this chunk above in the top line
+
+
+```
+
+```{r, global_options, echo=FALSE}
+suppressWarnings(library(knitr))
+# set options
+opts_chunk$set(fig.width=8, fig.height=4, fig.path='Figs/',
+               echo=FALSE, warning=FALSE, message=FALSE)
+eval_everything=FALSE
+```
+
+```{r libraries}
+library(metafor)
+
+```
+
+# Documentation in Vignettes
+An Introduction is presented in vignettes, expecially in the root directory:
+
+*metafor/Conducting Meta-Analyses in R with the metafor.pdf*
+
+```{r Vignettes, eval=FALSE, echo=TRUE}
+browseVignettes("metafor")
+```
+
+## Reproducing the example
+
+```{r example1}
+dat <- escalc(measure = "RR", ai = tpos, bi = tneg, ci = cpos,
+              di = cneg, data = dat.bcg, append = TRUE)
+kable(dat)
+
+res <- rma(yi, vi, data = dat)
+res
+
+forest(res, slab = paste(dat$author, dat$year, sep = ", "),
+       xlim = c(-16, 6), at = log(c(0.05, 0.25, 1, 4)), atransf = exp,
+       ilab = cbind(dat$tpos, dat$tneg, dat$cpos, dat$cneg),
+       ilab.xpos = c(-9.5, -8, -6, -4.5), cex = 0.75)
+op <- par(cex = 0.75, font = 2)
+text(c(-9.5, -8, -6, -4.5), 15, c("TB+", "TB-", "TB+", "TB-"))
+text(c(-8.75, -5.25), 16, c("Vaccinated", "Control"))
+text(-16, 15, "Author(s) and Year", pos = 4)
+text(6, 15, "Relative Risk [95% CI]", pos = 2)
+par(op)
+```
