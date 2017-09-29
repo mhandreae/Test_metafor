@@ -23,7 +23,7 @@ Michael H. Andreae, M.D., Department of Anesthesiology & Perioperative Medicine,
 
 ## Option 1
 if (!require("pacman")) install.packages("pacman", repos='http://cran.us.r-project.org')
-pacman::p_load(knitr, ggplot2, tidyverse, metafor)
+pacman::p_load(knitr, ggplot2, tidyverse, metafor, readxl)
 
 ## Option 2, 
 ### if option one causes an error, comment option one and uncomment option 2:
@@ -82,5 +82,67 @@ text(c(-9.5, -8, -6, -4.5), 15, c("TB+", "TB-", "TB+", "TB-"))
 text(c(-8.75, -5.25), 16, c("Vaccinated", "Control"))
 text(-16, 15, "Author(s) and Year", pos = 4)
 text(6, 15, "Relative Risk [95% CI]", pos = 2)
+par(op)
+```
+
+# Cochrane review analysis Regional Anesthesia for Persistent Pain
+
+We import and clean the data extracted during the systematic review and save it as a .Rdata file 
+
+```{r import_ACE151_data, eval=FALSE, echo=TRUE}
+library(readxl)
+ACE151_raw <- read_excel("C:/Users/mandreae/Dropbox/Cochrane/revision 2014/Updated Search 2016/Overview of all included studies.xlsx")
+save(ACE151_raw, file="data/ACE151_raw.Rdata")
+rm(ACE151_raw)
+```
+
+
+## Import and clean Breast Data
+
+```{r clean_ACE151_Breast, echo=TRUE, eval=FALSE}
+library(tidyverse)
+load(file="data/ACE151_raw.Rdata")
+ACE151_Breast <- ACE151_raw %>% 
+  filter(`Surgery Group` == "Breast") %>%
+  transmute(author = factor(Author), 
+            year = Year,
+            regional = factor(`Anesthesia Technique`), 
+            endpoint =as.numeric(`Follow Up (months)`),
+            ai = as.numeric(`Events (experimental group)`),
+            bi = as.numeric(`N (experimental group)`) - ai,
+            ci = as.numeric(`Events (control group)`),
+            di = as.numeric(`N (control group)`) - ci,
+            singleshot = as.factor(`Single Shot or Continuous`))
+
+kable(ACE151_Breast)
+save(ACE151_Breast, file = "results/ACE151_Breast.Rdata")
+rm(ACE151_raw, ACE151_Breast)
+```
+
+## Compute Breast data
+
+Computing OR for breast studies with follow up at 3 months yields the same results as in Revman.
+
+```{r compute_ACE151_Breast}
+library(metafor)
+library(tidyverse)
+load("results/ACE151_Breast.Rdata")
+
+ACE151_Breast <-   filter(ACE151_Breast, endpoint == 3)
+ACE151_Breast <-  escalc(measure = "OR", ai = ai, bi = bi, ci = ci,
+              di = di, data = ACE151_Breast, append = TRUE)
+  
+
+res <- rma(yi, vi, data = ACE151_Breast)
+res
+forest(res, slab = paste(ACE151_Breast$author, ACE151_Breast$year, sep = ", "),
+       xlim = c(-16, 6), at = log(c(0.05, 0.25, 1, 4)), atransf = exp,
+       ilab = cbind(ACE151_Breast$ai, ACE151_Breast$bi, ACE151_Breast$ci, ACE151_Breast$di),
+       ilab.xpos = c(-9.5, -8, -6, -4.5), cex = 0.75)
+op <- par(cex = 0.75, font = 2)
+text(c(-9.5, -8, -6, -4.5), 23, c("PPP+", "PPP-", "PPP+", "PPP-"))
+text(c(-8.75, -5.25), 24.5, c("Regional", "Control"))
+text(-16, 23, "Author and Year", pos = 4)
+text(6, 23, "Odds Ratio [95% CI]", pos = 2)
 par(op)
 ```
